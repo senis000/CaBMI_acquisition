@@ -1,4 +1,4 @@
-function out = BMI_acqnvs3nobuff(vals,varargin)
+function out = BMI_acqnvs(vals,varargin)
 
 % To initialize the recording:
 flush =0; 
@@ -6,7 +6,7 @@ flush =0;
 %Variables to define before running the code / (grab in scanimage)
 E2 = [1 2];
 E1 = [3 4];  % E2 being the one that has to INCREASE!!!  to get reward
-T1 = -0.65; % value obtained by the baseline to get 30% of correct trials.
+T1 = -0.77; % value obtained by the baseline to get 30% of correct trials.
 
 %% this is only to initialize
 persistent expHistory
@@ -52,7 +52,7 @@ timeoutFrames = round(timeout * frameRate);
     
 % Define persistent variables that will remain in each iteration of this
 % function
-persistent a rewardHistory trialHistory i tim nZ motionFlag motionCounter trialFlag backtobaselineFlag lastVol baseval counter
+persistent a rewardHistory trialHistory i tim nZ motionFlag motionCounter trialFlag backtobaselineFlag lastVol baseval counter misscount
 global cursor frequency
 
 
@@ -90,6 +90,7 @@ if isempty(expHistory) %if this is the first time it runs this program (after fl
     trialFlag = 1;
     counter = 40;
     backtobaselineFlag = 0;
+    misscount = 0;
 end
 
 
@@ -120,7 +121,13 @@ if thisVol > lastVol
         expHistory = mVals(:, end-movingAverageFrames+1:end);
     end
 
-
+    %handle misscount
+    if misscount > 9
+        T1 = T1 - T1/20;
+        disp (['New T1: ', num2str(T1)])
+        misscount = 0;
+    end
+    
     %handle motion
     % because we don't want to stim or reward if there is motion
     mot = evalin('base', 'hSI.hMotionManager.motionCorrectionVector');
@@ -197,6 +204,7 @@ if thisVol > lastVol
                 evalin('base','trialEnd(end+1) = duration;')
                 evalin('base','hits(end+1) = duration;');
                 trialFlag = 1;
+                misscount = 0;
                 counter = relaxationFrames;
                 backtobaselineFlag = 1;
 
@@ -209,6 +217,7 @@ if thisVol > lastVol
                     evalin('base','trialEnd(end+1) = duration;')
                     evalin('base','miss(end+1) = duration;')
                     trialFlag = 1;
+                    misscount = misscount + 1;
                     counter = timeoutFrames;
                 end
                 if cursor(i) >= T1 && motionFlag 

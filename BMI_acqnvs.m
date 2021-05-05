@@ -121,12 +121,6 @@ if thisVol > lastVol
         expHistory = mVals(:, end-movingAverageFrames+1:end);
     end
 
-    %handle misscount
-    if misscount > 9
-        T1 = T1 - T1/20;
-        disp (['New T1: ', num2str(T1)])
-        misscount = 0;
-    end
     
     %handle motion
     % because we don't want to stim or reward if there is motion

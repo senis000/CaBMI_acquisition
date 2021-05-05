@@ -1,0 +1,19 @@
+function params = defin_params()
+%{ 
+    function that contains the required parameters to be used on the bmi
+%}
+    % timers in seconds
+    params.baseLength = 2*60; % number of seconds without BMI to stablish Baseline
+    params.movingAverage = 1; % Moving average in sec to calculate BMI 
+    params.relaxationTime = 4;  % there can't be another hit in this many sec
+    params.timeout = 5; %seconds of timeout if no hit in duration trial (sec)
+    
+    % parameters
+    params.back2BaseFrameThresh = 2; %need to be back2Base for x frames before another target can be achieved
+    params.durationTrial = 30; % maximum time that mice have for a trial
+    params.freqMax = 18000;
+    params.freqMin = 2000;
+    params.initial_count = 40;  % count to start experiment
+    params.motionThresh = 6;  %value to define maximum movement to flag a motion-relaxation time
+
+    return 

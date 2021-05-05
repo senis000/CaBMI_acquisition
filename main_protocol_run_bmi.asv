@@ -1,0 +1,18 @@
+%{ this script follows step by step what you need to do to run the BMI experiment.
+%}
+
+% parameters to start the protocol
+folder_main = 'C:\Users\Nuria\Documents\DATA\';
+mice_name = 'IT01';
+day = '210903';
+
+% define paths
+folder_path = fullfile(folder_main, 'ITPT'); %debug
+% folder_path = fullfile(folder_main, mice_name);
+
+% task settings
+task_settings = obtain_task_settings (exptStr, E1, E2, T1, baseValSeed);
+% mice specific sessings
+
+% import the baseline info
+baseline_data = readtable('baseline_IntegrationRois_00001.csv');

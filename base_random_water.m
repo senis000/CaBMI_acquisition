@@ -10,7 +10,7 @@ end
 
 if rand()<0.0005
     disp('animal got water');
-    a.writeDigitalPin("D10", 1); pause(0.010);a.writeDigitalPin("D10",0)
+    a.writeDigitalPin("D10", 1); pause(0.005);a.writeDigitalPin("D10",0)
 end
 
 

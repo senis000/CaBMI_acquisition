@@ -3,11 +3,12 @@ function params = define_params_calibration()
     function that contains the required general parameters to be used on the bmi
 %}
     % timers in seconds
-    params.sec_per_reward_range = [100 85];     
+    params.sec_per_reward_range = [120 75]; %[100 85];     
     params.target_on_cov_bool = 0;
-    params.maxiter = 10000;
+    params.max_iter = 10000;
     params.back2base_alpha = 0.5;
     params.T_delta = 0.01;
+    
 
     
     % plotting

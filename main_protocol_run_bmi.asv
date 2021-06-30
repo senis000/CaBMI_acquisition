@@ -20,7 +20,7 @@ to choose from:
 normal_bmi -> normal bmi without any fancy stuff
 dstim_bmi -> BMI + using stim to give reward
 block_bmi_reward -> BMI + blocking D1 when given a reward
-block_bmi -> BMI + blocking D1 when closer to target
+block_bmi_closer -> BMI + blocking D1 when closer to target
 random_stim -> BMI + stim random time
 %}
 round = 'D1exp';
@@ -86,4 +86,3 @@ calibration_results = obtain_calibration(baseline_data([calibration_settings.E_s
 %*********************************************************************
 %% Run BMI
 %*********************************************************************
-

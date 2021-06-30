@@ -3,11 +3,11 @@ function plot_covariance(neuronal_activity, folder_plot)
     function to plot covariance of neuronal activity
 %}
     h = figure;
-    imagesc(neuronal_activity); 
+    imagesc(cov(neuronal_activity)); 
     colorbar
     axis square
     colormap;
-    caxis([-0.2 0.5]); 
+%     caxis([-0.2 1]); 
     plot_saving(h, 'roi', 'roi', 'neural cov', folder_plot, 'neural_cov_mat')
 
     [~,s,~] = svd(neuronal_activity); 

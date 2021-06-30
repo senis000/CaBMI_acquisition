@@ -3,6 +3,7 @@ function task_settings = obtain_settings_task (experiment, mice_name, folder_pat
     
     %% basic settings
     task_settings.experiment = experiment;
+    task_settings.folder_path = folder_path;
     
     %% parameteres
     task_settings.mice_settings = obtain_settings_mice(mice_name);
@@ -15,7 +16,7 @@ function task_settings = obtain_settings_task (experiment, mice_name, folder_pat
     %% parameters depending on frames
     if debug_mode
         task_settings.expected_length_experiment = 10000;
-        task_settings.frame_rate = 30;
+        task_settings.frame_rate = 10;
     else
         task_settings.expected_length_experiment = evalin('base','hSI.hFastZ.numVolumes'); % frames that will last the online experiment (less than actual exp)
         task_settings.frame_rate = evalin('base','hSI.hRoiManager.scanFrameRate/hSI.hFastZ.numFramesPerVolume');
@@ -28,7 +29,7 @@ function task_settings = obtain_settings_task (experiment, mice_name, folder_pat
     task_settings.timeout_frames = round(task_settings.params.timeout * task_settings.frame_rate);
     
     %% Seed for the baseline if provided
-    if nargin < 8
+    if nargin < 5
         task_settings.base_val_seed = NaN(task_settings.base_frames);
     else
         task_settings.base_val_seed = base_val_seed;

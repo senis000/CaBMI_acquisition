@@ -277,13 +277,12 @@ function out = BMIAcqnvs_v2(vals,varargin)
                                 history.number_rewards = history.number_rewards + 1;
                                 data.rewards(history.number_rewards) = history.index;
                                 % give water reward
-                                a.writeDigitalPin("D10", 1); pause(task_settings.params.water_time); a.writeDigitalPin("D10",0)
+                                a.writeDigitalPin("D10", 1); pause(0.010);a.writeDigitalPin("D10",0)
                                 disp(['Trial: ', num2str(history.number_trials), 'Water rewards: ', num2str(history.number_rewards)]);
                             elseif flags.stim_target
                                 history.number_stims = history.number_stims + 1;
                                 data.stims(history.number_stims) = history.index;
                                 % send stim!! TODO
-                                a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
                                 disp(['Trial: ', num2str(history.number_trials), 'Stim rewards: ', num2str(history.number_stims)]); 
                             end
 
@@ -307,26 +306,20 @@ function out = BMIAcqnvs_v2(vals,varargin)
                             if toc > time_stim
                                 disp('random stim')
                                 %TODO!!! send stim
-                                a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
                                 history.number_stims = history.number_stims + 1;
                                 data.stims(history.number_stims) = history.index;
                                 flags.stim_done = true;
                             end
                         end
                     end
-                    if flags.stim_time
+                    if flags.stim_time && ~ flags.stim_done
                         % sends stim if the cursor is approaching the target
                         if data.cursor(history.index) >= block_val
                             disp('timed stim')
-                            a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
                             %TODO send stim
-                            if ~flags.stim_done
-                                history.number_stims = history.number_stims + 1;
-                                data.stims(history.number_stims) = history.index;
-                                flags.stim_done = true;
-                            end
-                        else
-                            flags.stim_done = false;
+                            history.number_stims = history.number_stims + 1;
+                            data.stims(history.number_stims) = history.index;
+                            flags.stim_done = true;
                         end
                     end
 

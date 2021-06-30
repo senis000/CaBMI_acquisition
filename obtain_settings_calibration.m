@@ -1,4 +1,4 @@
-function calibration_settings = obtain_settings_calibration (mice_name, E1, E2, folder_path, baseline_file_path, debug_mode)
+function calibration_settings = obtain_settings_calibration (E1, E2, folder_path, baseline_file_path, debug_mode)
 %{ function to initialize the variables that the BMI needs %}
     
     %% input settings
@@ -6,18 +6,29 @@ function calibration_settings = obtain_settings_calibration (mice_name, E1, E2, 
     calibration_settings.E2 = E2;
     calibration_settings.E1 = E1;
     calibration_settings.units = length(E1)+length(E2); 
+    
+    [E_sorted, ind] = sort([E1 E2]);
+    E1_ind = ind(1:length(E1));
+    E2_ind = ind(length(E1) + 1:length(E1) + length(E2));
+    E_id = ones(1, length(ind));
+    E_id(E1_ind) = 1;
+    E_id(E2_ind) = 2;
+    
+    calibration_settings.E_id = E_id;
+    calibration_settings.E_sorted = E_sorted;
+    calibration_settings.E1_ind = E1_ind;
+    calibration_settings.E2_ind = E2_ind;
 
     %% parameteres
-    calibration_settings.mice_settings = define_mice_settings(mice_name);
     calibration_settings.params = define_params_calibration();
     
-    if nargin < 6
+    if nargin < 5
         debug_mode = false;
     end
     
     %% parameters depending on frames
     if debug_mode
-        calibration_settings.frame_rate = 30;
+        calibration_settings.frame_rate = 10;
     else
         calibration_settings.frame_rate = evalin('base','hSI.hRoiManager.scanFrameRate/hSI.hFastZ.numFramesPerVolume');
     end

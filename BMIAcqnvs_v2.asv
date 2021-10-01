@@ -28,10 +28,11 @@ function out = BMIAcqnvs_v2(vals,varargin)
 
     %% To initialize the recording:
     % this is required to clean all the persistent variables if need be
-    flush =0; 
+    flush = 1; 
 
     % this is only to initialize. History keeps most of the persisten vars
     global history
+    global data
     
     if flush 
         vars = whos;
@@ -43,6 +44,24 @@ function out = BMIAcqnvs_v2(vals,varargin)
         clear history;
         disp('flushiiiing')
         history.experiment = [];
+        history.baseval = [];
+        history.buffer = [];  %define a windows buffer
+        history.index = 1 ;
+        history.last_volume = 0;  %careful with this it may create problems
+        history.nZ=[];
+        history.number_hits = 0; 
+        history.number_miss = 0; 
+        history.number_rewards = 0; 
+        history.number_trials = 0;
+        history.number_stims = 0;
+        data.cursor = [];  %define a very long vector for cursor
+        data.frequency = [];
+        data.hits = [];
+        data.miss = [];
+        data.reward = [];
+        data.stims = [];
+        data.trial_end = [];
+        data.trial_start = single(nan(1, task_settings.params.length_trials));
         return
     end
     
@@ -61,8 +80,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     %% needed variables
     % Define persistent variables that will remain in each iteration of this
     % function
-    persistent a flags counters task_settings T back_2_base block_val fb_mapping
-    global data
+    persistent a flags counters task_settings T decoder units back_2_base block_val fb_mapping
     
     
    %%
@@ -81,6 +99,8 @@ function out = BMIAcqnvs_v2(vals,varargin)
         % bring the settings from base
         task_settings = evalin('base','task_settings');
         T = evalin('base','calibration_results.T');
+        decoder = evalin('base','calibration_results.decoder');
+        units = evalin('base','calibration_settings.units');
         back_2_base = evalin('base','calibration_settings.params.back2base_alpha')*T;
         block_val = evalin('base','task_settings.params.block_at_alpha')*T;
         fb_mapping = evalin('base','calibration_results.fb_mapping');
@@ -108,7 +128,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         data.stims = single(nan(1, task_settings.params.length_trials));
         data.trial_end = single(nan(1, task_settings.params.length_trials));
         data.trial_start = single(nan(1, task_settings.params.length_trials));
-        history.baseval = single(ones(task_settings.units,1).*vals);
+        history.baseval = single(ones(units,1).*vals);
         history.buffer = single(nan(units, task_settings.moving_average_frames));  %define a windows buffer
         history.index = 1 ;
         history.last_volume = 0;  %careful with this it may create problems
@@ -122,7 +142,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     %% some parameters depending on settinggs
 %     init_frame_base = task_settings.params.initial_count + 1;
     % experiment FLAGS
-    switch lower(task_settings.exptStr) %make it case insensitive. all lower cases
+    switch lower(task_settings.experiment) %make it case insensitive. all lower cases
         case 'normal_bmi'
             flags.BMI = true;
             flags.water = true;
@@ -165,7 +185,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     
     % acquire the actual frame
     this_frame = evalin('base','hSI.hScan2D.hAcq.hFpga.AcqStatusAcquiredFrames');
-    this_volume = floor(this_frame/nZ);
+    this_volume = floor(this_frame/history.nZ);
     %if we've completed a new volume, update history 
     % store nans on frames that we've skipped so we know we skipped
     % them
@@ -277,12 +297,13 @@ function out = BMIAcqnvs_v2(vals,varargin)
                                 history.number_rewards = history.number_rewards + 1;
                                 data.rewards(history.number_rewards) = history.index;
                                 % give water reward
-                                a.writeDigitalPin("D10", 1); pause(0.010);a.writeDigitalPin("D10",0)
+                                a.writeDigitalPin("D10", 1); pause(task_settings.params.water_time); a.writeDigitalPin("D10",0)
                                 disp(['Trial: ', num2str(history.number_trials), 'Water rewards: ', num2str(history.number_rewards)]);
                             elseif flags.stim_target
                                 history.number_stims = history.number_stims + 1;
                                 data.stims(history.number_stims) = history.index;
                                 % send stim!! TODO
+                                a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
                                 disp(['Trial: ', num2str(history.number_trials), 'Stim rewards: ', num2str(history.number_stims)]); 
                             end
 
@@ -306,20 +327,26 @@ function out = BMIAcqnvs_v2(vals,varargin)
                             if toc > time_stim
                                 disp('random stim')
                                 %TODO!!! send stim
+                                a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
                                 history.number_stims = history.number_stims + 1;
                                 data.stims(history.number_stims) = history.index;
                                 flags.stim_done = true;
                             end
                         end
                     end
-                    if flags.stim_time && ~ flags.stim_done
+                    if flags.stim_time
                         % sends stim if the cursor is approaching the target
                         if data.cursor(history.index) >= block_val
                             disp('timed stim')
+                            a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
                             %TODO send stim
-                            history.number_stims = history.number_stims + 1;
-                            data.stims(history.number_stims) = history.index;
-                            flags.stim_done = true;
+                            if ~flags.stim_done
+                                history.number_stims = history.number_stims + 1;
+                                data.stims(history.number_stims) = history.index;
+                                flags.stim_done = true;
+                            end
+                        else
+                            flags.stim_done = false;
                         end
                     end
 

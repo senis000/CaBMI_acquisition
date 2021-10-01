@@ -8,8 +8,22 @@ function calibration_settings = obtain_settings_calibration (E1, E2, folder_path
     calibration_settings.units = length(E1)+length(E2); 
     
     [E_sorted, ind] = sort([E1 E2]);
-    E1_ind = ind(1:length(E1));
-    E2_ind = ind(length(E1) + 1:length(E1) + length(E2));
+    E1_ind = zeros(1,length(E1));
+    E2_ind = zeros(1,length(E1));
+    for i = 1:length(E1)
+        e_aux = find(E_sorted==E1(i));
+        if ~isempty(e_aux)
+            E1_ind(i) = e_aux;
+        end
+    end
+    for i = 1:length(E2)
+        e_aux = find(E_sorted==E2(i));
+        if ~isempty(e_aux)
+            E2_ind(i) = e_aux;
+        end
+    end
+        
+
     E_id = ones(1, length(ind));
     E_id(E1_ind) = 1;
     E_id(E2_ind) = 2;

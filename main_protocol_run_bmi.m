@@ -23,13 +23,13 @@ block_bmi_reward -> BMI + blocking D1 when given a reward
 block_bmi -> BMI + blocking D1 when closer to target
 random_stim -> BMI + stim random time
 %}
-round = 'D1exp';
-debug_mode = true;
+round = 'test';
+debug_mode = false;
 
 %*********************************************************************
 %% parameters to start the protocol
 %*********************************************************************
-folder_main = 'C:\Users\Nuria\Documents\DATA\';
+folder_main = 'F:\Dopamine_BMI\';
 
 % define paths
 folder_path = fullfile(folder_main, round, mice_name, day); %debug
@@ -82,6 +82,29 @@ calibration_results = obtain_calibration(baseline_data([calibration_settings.E_s
 %% Remove all Indirect (non ensemble) neurons
 %*********************************************************************
 % Please refer to "HOWTO_2P_SCANIMAGE"
+
+%% define globals
+global history
+global data
+history.experiment = [];
+history.baseval = [];
+history.buffer = [];  %define a windows buffer
+history.index = 1 ;
+history.last_volume = 0;  %careful with this it may create problems
+history.nZ=hSI.hFastZ.numFramesPerVolume;
+history.number_hits = 0; 
+history.number_miss = 0; 
+history.number_rewards = 0; 
+history.number_trials = 0;
+history.number_stims = 0;
+data.cursor = [];  %define a very long vector for cursor
+data.frequency = [];
+data.hits = [];
+data.miss = [];
+data.reward = [];
+data.stims = [];
+data.trial_end = [];
+data.trial_start = [];
 
 %*********************************************************************
 %% Run BMI

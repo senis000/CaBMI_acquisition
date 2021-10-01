@@ -17,7 +17,7 @@ function calibration_results = obtain_calibration(ensemble_base_activity,  ...
     %% BMI data from baseline 
     %Throw out prefix frames:
     ind = [calibration_settings.E1_ind calibration_settings.E2_ind];
-    f_raw = ensemble_base_activity(ind, (task_settings.params.initial_count + 1):end); %first E1, then E2
+    f_raw = ensemble_base_activity(:, (task_settings.params.initial_count + 1):end); %first E1, then E2
 
 
     %% Decoder information
@@ -152,9 +152,9 @@ function calibration_results = obtain_calibration(ensemble_base_activity,  ...
         legend_str = {'cursor', 'E1', 'E2'};
         signal_n = [cursor_obs; nanmean(dff(calibration_settings.E1_ind,:),1); nanmean(dff(calibration_settings.E2_ind,:),1)];
         h = plot_nsignals(signal_n, '', '', '', '', '', offset, legend_str, false);
-        for i=1:length(valid_hit_idxs)
-            xline(valid_hit_idxs(i), '--');
-        end
+%         for i=1:length(valid_hit_idxs)
+%             xline(valid_hit_idxs(i), '--');
+%         end
         plot_saving(h, 'Time (frames)', 'DFF', ['valid_hits: '  num2str(length(valid_hit_idxs))], ...
             calibration_settings.folder_plot, 'cursor_E1_E2')
         
@@ -175,10 +175,10 @@ function calibration_results = obtain_calibration(ensemble_base_activity,  ...
 
             plot(y_plot-offset, ...
                 'Color', calibration_settings.params.plot_raster_colors{calibration_settings.E_id(i)}); 
-            errbar(1:length(y_plot), y_plot-offset,y_sem, ...
+            errorbar(1:length(y_plot), y_plot-offset,y_sem, ...
                 'Color', calibration_settings.params.plot_raster_colors{calibration_settings.E_id(i)});
         end
-        xline(abs(psth_win(1))); 
+%         xline(abs(psth_win(1))); 
         plot_saving(h, 'frame', 'dff', 'PSTH of Baseline Activity Locked to Target Hit', ...
             calibration_settings.folder_plot, 'PSTH_locked_to_hit_baseline.png'); 
     end
@@ -191,7 +191,7 @@ function calibration_results = obtain_calibration(ensemble_base_activity,  ...
         plot(plot_cursor, plot_freq, 'linewidth',3); 
         hold on
         ylabel('Audiory Freq'); 
-        xline(T); 
+%         xline(T); 
         yyaxis right
         plot(cursor_obs, 1:length(cursor_obs))
         plot_saving(h, 'Cursor E2-E1', 'Frame', 'freq_cursor', ...

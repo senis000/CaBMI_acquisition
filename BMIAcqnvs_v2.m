@@ -27,11 +27,16 @@ function out = BMIAcqnvs_v2(vals,varargin)
 %}
 
     %% To initialize the recording:
-    % this is required to clean all the persistent variables if need be
-    flush =0; 
+    
 
     % this is only to initialize. History keeps most of the persisten vars
     global history
+    global data
+    
+    % this is required to clean all the persistent variables if need be
+    flush = 0; 
+%     history.index = 1;
+
     
     if flush 
         vars = whos;
@@ -42,7 +47,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         clear a;
         clear history;
         disp('flushiiiing')
-        history.experiment = [];
+        
         return
     end
     
@@ -61,8 +66,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     %% needed variables
     % Define persistent variables that will remain in each iteration of this
     % function
-    persistent a flags counters task_settings T back_2_base block_val fb_mapping
-    global data
+    persistent a flags counters task_settings T decoder units back_2_base block_val fb_mapping
     
     
    %%
@@ -76,11 +80,13 @@ function out = BMIAcqnvs_v2(vals,varargin)
         disp('starting arduino')
     end
       
-    if isempty(history.experiment) %if this is the first time it runs this program (after flush)
+    if history.index==1 %if this is the first time it runs this program (after flush)
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % bring the settings from base
         task_settings = evalin('base','task_settings');
         T = evalin('base','calibration_results.T');
+        decoder = evalin('base','calibration_results.decoder');
+        units = evalin('base','calibration_settings.units');
         back_2_base = evalin('base','calibration_settings.params.back2base_alpha')*T;
         block_val = evalin('base','task_settings.params.block_at_alpha')*T;
         fb_mapping = evalin('base','calibration_results.fb_mapping');
@@ -108,9 +114,8 @@ function out = BMIAcqnvs_v2(vals,varargin)
         data.stims = single(nan(1, task_settings.params.length_trials));
         data.trial_end = single(nan(1, task_settings.params.length_trials));
         data.trial_start = single(nan(1, task_settings.params.length_trials));
-        history.baseval = single(ones(task_settings.units,1).*vals);
+        history.baseval = single(ones(units,1).*vals);
         history.buffer = single(nan(units, task_settings.moving_average_frames));  %define a windows buffer
-        history.index = 1 ;
         history.last_volume = 0;  %careful with this it may create problems
         history.nZ=evalin('base','hSI.hFastZ.numFramesPerVolume');
         history.number_hits = 0; 
@@ -122,7 +127,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     %% some parameters depending on settinggs
 %     init_frame_base = task_settings.params.initial_count + 1;
     % experiment FLAGS
-    switch lower(task_settings.exptStr) %make it case insensitive. all lower cases
+    switch lower(task_settings.experiment) %make it case insensitive. all lower cases
         case 'normal_bmi'
             flags.BMI = true;
             flags.water = true;
@@ -165,7 +170,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     
     % acquire the actual frame
     this_frame = evalin('base','hSI.hScan2D.hAcq.hFpga.AcqStatusAcquiredFrames');
-    this_volume = floor(this_frame/nZ);
+    this_volume = floor(this_frame/history.nZ);
     %if we've completed a new volume, update history 
     % store nans on frames that we've skipped so we know we skipped
     % them
@@ -209,10 +214,10 @@ function out = BMIAcqnvs_v2(vals,varargin)
                 history.buffer = mVals(:, end-task_settings.moving_average_frames+1:end);
             end
             
-            signal = single(nanmean(history.experiment, 2));
+            signal = single(nanmean(history.buffer, 2));
             
             % update dynamic baseline. baseline may be seeded if another BMI was run before 
-            if flags.init_baseline && ~isnan(sum(task_settings.base_val_seed))
+            if flags.init_baseline && ~isnan(sum(sum(task_settings.base_val_seed)))
                 flags.base_buffer_full = true; 
                 history.baseval = task_settings.base_val_seed; 
                 disp('baseBuffer seeded!'); 
@@ -343,8 +348,10 @@ function out = BMIAcqnvs_v2(vals,varargin)
             end
         end
 
-        history.index = history.index + 1;
-        data.timeVector(history.index) = toc;
+        if counters.tim ~= 0
+            data.timeVector(history.index) = toc;
+            counters.tim = tic;
+        end
     else
         % do nothing (for now)
     end

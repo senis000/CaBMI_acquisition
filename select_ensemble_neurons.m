@@ -12,7 +12,8 @@ function [E1, E2] = select_ensemble_neurons(baseline_data)
     disp('Displaying the best 20 neurons, please select ensemble neurons when promted')
     figure()
 
-    for idx=1:20
+    max_idx = min(length(S), 20);
+    for idx=1:max_idx
         subplot(4,5,idx)
         plot(baseline_data(ind(idx), :)');
         title(['ROI ' int2str(ind(idx))]);

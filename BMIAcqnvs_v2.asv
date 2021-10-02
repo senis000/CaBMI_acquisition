@@ -27,12 +27,16 @@ function out = BMIAcqnvs_v2(vals,varargin)
 %}
 
     %% To initialize the recording:
-    % this is required to clean all the persistent variables if need be
-    flush = 1; 
+    
 
     % this is only to initialize. History keeps most of the persisten vars
     global history
     global data
+    
+    % this is required to clean all the persistent variables if need be
+    flush = 0; 
+%     history.index = 1;
+
     
     if flush 
         vars = whos;
@@ -43,25 +47,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         clear a;
         clear history;
         disp('flushiiiing')
-        history.experiment = [];
-        history.baseval = [];
-        history.buffer = [];  %define a windows buffer
-        history.index = 1 ;
-        history.last_volume = 0;  %careful with this it may create problems
-        history.nZ=[];
-        history.number_hits = 0; 
-        history.number_miss = 0; 
-        history.number_rewards = 0; 
-        history.number_trials = 0;
-        history.number_stims = 0;
-        data.cursor = [];  %define a very long vector for cursor
-        data.frequency = [];
-        data.hits = [];
-        data.miss = [];
-        data.reward = [];
-        data.stims = [];
-        data.trial_end = [];
-        data.trial_start = single(nan(1, task_settings.params.length_trials));
+        
         return
     end
     
@@ -94,7 +80,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         disp('starting arduino')
     end
       
-    if isempty(history.experiment) %if this is the first time it runs this program (after flush)
+    if history.index==1 %if this is the first time it runs this program (after flush)
         % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % bring the settings from base
         task_settings = evalin('base','task_settings');
@@ -114,6 +100,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         counters.back_2_base = 0;
         counters.baseline_full = task_settings.base_frames;
         counters.tim = 0;
+        counters.tim_frame = 0;
         flags.back_2_baseline = false;
         flags.new_trial = true;
         flags.base_buffer_full = false;
@@ -128,9 +115,9 @@ function out = BMIAcqnvs_v2(vals,varargin)
         data.stims = single(nan(1, task_settings.params.length_trials));
         data.trial_end = single(nan(1, task_settings.params.length_trials));
         data.trial_start = single(nan(1, task_settings.params.length_trials));
+        data.time_vector = single(nan(1, task_settings.expected_length_experiment));
         history.baseval = single(ones(units,1).*vals);
         history.buffer = single(nan(units, task_settings.moving_average_frames));  %define a windows buffer
-        history.index = 1 ;
         history.last_volume = 0;  %careful with this it may create problems
         history.nZ=evalin('base','hSI.hFastZ.numFramesPerVolume');
         history.number_hits = 0; 
@@ -185,12 +172,15 @@ function out = BMIAcqnvs_v2(vals,varargin)
     
     % acquire the actual frame
     this_frame = evalin('base','hSI.hScan2D.hAcq.hFpga.AcqStatusAcquiredFrames');
+    if isempty(history.nZ)
+        history.nZ = 1;
+    end
     this_volume = floor(this_frame/history.nZ);
     %if we've completed a new volume, update history 
     % store nans on frames that we've skipped so we know we skipped
     % them
     if this_volume > history.last_volume  % if this is a new volume
-
+        counters.tim_frame = cputime;
         % handle ******* MOTION***********
         % because we don't want to stim or reward or update buffer if there is motion
         mot = evalin('base', 'hSI.hMotionManager.motionCorrectionVector');
@@ -211,12 +201,14 @@ function out = BMIAcqnvs_v2(vals,varargin)
             end
         end
         
-
+        % obtain the frame
+        steps = this_volume - history.last_volume;
+        history.last_volume = this_volume;
+        history.index = history.index + steps;
+        
         if counters.do_not_update_buffer == 0 && ~flags.motion
             %update frame
-            steps = this_volume - history.last_volume;
-            history.last_volume = this_volume;
-            history.index = history.index + steps;
+
             % variable to hold nans in unseen frames
             placeholder = nan(numel(vals),steps-1);
             mVals = [placeholder vals];
@@ -229,10 +221,10 @@ function out = BMIAcqnvs_v2(vals,varargin)
                 history.buffer = mVals(:, end-task_settings.moving_average_frames+1:end);
             end
             
-            signal = single(nanmean(history.experiment, 2));
+            signal = single(nanmean(history.buffer, 2));
             
             % update dynamic baseline. baseline may be seeded if another BMI was run before 
-            if flags.init_baseline && ~isnan(sum(task_settings.base_val_seed))
+            if flags.init_baseline && ~isnan(sum(sum(task_settings.base_val_seed)))
                 flags.base_buffer_full = true; 
                 history.baseval = task_settings.base_val_seed; 
                 disp('baseBuffer seeded!'); 
@@ -268,7 +260,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     history.number_trials = history.number_trials + 1;
                     data.trial_start(history.number_trials) = history.index;
                     flags.new_trial = false;
-                    counters.tim = tic;
+                    counters.tim = cputime;
                     disp('New Trial!')
                     if flags.random_stim
                         flags.stim_done = false;
@@ -287,6 +279,8 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     end
                 else
                     a.playTone("D11", freq, 1);
+
+                    data.cursor(history.index)
                     if data.cursor(history.index) >= T      %if it hit the target
                         if flags.BMI
                             disp('target hit')
@@ -313,7 +307,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                         else
                             % do nothing for now. Available to implement later 
                         end
-                    elseif toc > task_settings.params.trial_max_time
+                    elseif (cputime - counters.tim) > task_settings.params.trial_max_time
                         disp('Timeout')
                         data.trial_end(history.number_trials) = history.index;
                         history.number_miss = history.number_miss + 1;
@@ -324,7 +318,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     end
                     if ~flags.new_trial
                         if flags.random_stim && ~ flags.stim_done
-                            if toc > time_stim
+                            if (cputime - counters.tim) > time_stim
                                 disp('random stim')
                                 %TODO!!! send stim
                                 a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
@@ -363,8 +357,8 @@ function out = BMIAcqnvs_v2(vals,varargin)
             end
         end
 
-        history.index = history.index + 1;
-        data.timeVector(history.index) = toc;
+        data.time_vector(history.index) = cputime - counters.tim_frame;
+
     else
         % do nothing (for now)
     end

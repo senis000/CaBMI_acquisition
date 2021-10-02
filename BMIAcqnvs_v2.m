@@ -100,6 +100,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         counters.back_2_base = 0;
         counters.baseline_full = task_settings.base_frames;
         counters.tim = 0;
+        counters.tim_frame = 0;
         flags.back_2_baseline = false;
         flags.new_trial = true;
         flags.base_buffer_full = false;
@@ -114,6 +115,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         data.stims = single(nan(1, task_settings.params.length_trials));
         data.trial_end = single(nan(1, task_settings.params.length_trials));
         data.trial_start = single(nan(1, task_settings.params.length_trials));
+        data.time_vector = single(nan(1, task_settings.expected_length_experiment));
         history.baseval = single(ones(units,1).*vals);
         history.buffer = single(nan(units, task_settings.moving_average_frames));  %define a windows buffer
         history.last_volume = 0;  %careful with this it may create problems
@@ -170,12 +172,15 @@ function out = BMIAcqnvs_v2(vals,varargin)
     
     % acquire the actual frame
     this_frame = evalin('base','hSI.hScan2D.hAcq.hFpga.AcqStatusAcquiredFrames');
+    if isempty(history.nZ)
+        history.nZ = 1;
+    end
     this_volume = floor(this_frame/history.nZ);
     %if we've completed a new volume, update history 
     % store nans on frames that we've skipped so we know we skipped
     % them
     if this_volume > history.last_volume  % if this is a new volume
-
+        counters.tim_frame = cputime;
         % handle ******* MOTION***********
         % because we don't want to stim or reward or update buffer if there is motion
         mot = evalin('base', 'hSI.hMotionManager.motionCorrectionVector');
@@ -196,12 +201,14 @@ function out = BMIAcqnvs_v2(vals,varargin)
             end
         end
         
-
+        % obtain the frame
+        steps = this_volume - history.last_volume;
+        history.last_volume = this_volume;
+        history.index = history.index + steps;
+        
         if counters.do_not_update_buffer == 0 && ~flags.motion
             %update frame
-            steps = this_volume - history.last_volume;
-            history.last_volume = this_volume;
-            history.index = history.index + steps;
+
             % variable to hold nans in unseen frames
             placeholder = nan(numel(vals),steps-1);
             mVals = [placeholder vals];
@@ -253,7 +260,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     history.number_trials = history.number_trials + 1;
                     data.trial_start(history.number_trials) = history.index;
                     flags.new_trial = false;
-                    counters.tim = tic;
+                    counters.tim = cputime;
                     disp('New Trial!')
                     if flags.random_stim
                         flags.stim_done = false;
@@ -298,7 +305,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                         else
                             % do nothing for now. Available to implement later 
                         end
-                    elseif toc > task_settings.params.trial_max_time
+                    elseif (cputime - counters.tim) > task_settings.params.trial_max_time
                         disp('Timeout')
                         data.trial_end(history.number_trials) = history.index;
                         history.number_miss = history.number_miss + 1;
@@ -309,7 +316,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     end
                     if ~flags.new_trial
                         if flags.random_stim && ~ flags.stim_done
-                            if toc > time_stim
+                            if (cputime - counters.tim) > time_stim
                                 disp('random stim')
                                 %TODO!!! send stim
                                 a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
@@ -348,10 +355,8 @@ function out = BMIAcqnvs_v2(vals,varargin)
             end
         end
 
-        if counters.tim ~= 0
-            data.timeVector(history.index) = toc;
-            counters.tim = tic;
-        end
+        data.time_vector(history.index) = cputime - counters.tim_frame;
+
     else
         % do nothing (for now)
     end

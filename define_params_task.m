@@ -3,7 +3,7 @@ function params = define_params_task()
     function that contains the required general parameters to be used on the bmi
 %}
     % timers in seconds
-    params.base_length = 2*60; % number of seconds without BMI to stablish Baseline
+    params.base_length = 1*60; % number of seconds without BMI to stablish Baseline
     params.moving_average = 1; % Moving average in sec to calculate BMI 
     params.relaxation_time = 4;  % there can't be another hit in this many sec
     params.timeout = 5; %seconds of timeout if no hit in duration trial (sec)

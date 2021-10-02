@@ -13,7 +13,7 @@ software adjustements during BMI.
 %*********************************************************************
 
 mice_name = 'IT01';
-day = '210903';
+day = '210905';
 experiment = 'normal_bmi';
 %{
 to choose from:
@@ -49,7 +49,9 @@ baseline_file ='baseline_IntegrationRois_00001.csv';
 %*********************************************************************
 % import the baseline info
 baseline_file_path = fullfile(folder_path, baseline_file); %debug
-baseline_online = table2array(readtable(baseline_file_path));
+opts = detectImportOptions(baseline_file_path);
+opts.VariableTypes(:) = {'double'};
+baseline_online = table2array(readtable(baseline_file_path, opts));
 baseline_data = baseline_online(10:end,3:end)';
 
 % input E1 and E2 values
@@ -71,9 +73,7 @@ calibration_settings = obtain_settings_calibration(E1, E2, ...
 task_settings = obtain_settings_task (experiment, mice_name, folder_path,...
     debug_mode);
 
-%*********************************************************************
-%% Calibrate target
-%*********************************************************************
+
 
 calibration_results = obtain_calibration(baseline_data([calibration_settings.E_sorted], :),  ...
     calibration_settings , task_settings);
@@ -86,12 +86,11 @@ calibration_results = obtain_calibration(baseline_data([calibration_settings.E_s
 %% define globals
 global history
 global data
-history.experiment = [];
 history.baseval = [];
 history.buffer = [];  %define a windows buffer
 history.index = 1 ;
 history.last_volume = 0;  %careful with this it may create problems
-history.nZ=hSI.hFastZ.numFramesPerVolume;
+history.nZ=1;
 history.number_hits = 0; 
 history.number_miss = 0; 
 history.number_rewards = 0; 
@@ -105,8 +104,16 @@ data.reward = [];
 data.stims = [];
 data.trial_end = [];
 data.trial_start = [];
+data.time_vector = [];
 
 %*********************************************************************
 %% Run BMI
 %*********************************************************************
 
+%******************************************
+%% Finishing up
+%*******************************************
+clear hSI
+clear hSICtl
+filename_path = fullfile(folder_path, 'workspace.mat'); %debug;
+save(filename_path)

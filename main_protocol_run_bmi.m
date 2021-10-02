@@ -13,7 +13,7 @@ software adjustements during BMI.
 %*********************************************************************
 
 mice_name = 'IT01';
-day = '210905';
+day = '210906';
 experiment = 'normal_bmi';
 %{
 to choose from:
@@ -100,7 +100,7 @@ data.cursor = [];  %define a very long vector for cursor
 data.frequency = [];
 data.hits = [];
 data.miss = [];
-data.reward = [];
+data.rewards = [];
 data.stims = [];
 data.trial_end = [];
 data.trial_start = [];
@@ -113,6 +113,7 @@ data.time_vector = [];
 %******************************************
 %% Finishing up
 %*******************************************
+roiGroup = hSI.hIntegrationRoiManager.roiGroup;
 clear hSI
 clear hSICtl
 filename_path = fullfile(folder_path, 'workspace.mat'); %debug;

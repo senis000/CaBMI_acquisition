@@ -34,8 +34,8 @@ function out = BMIAcqnvs_v2(vals,varargin)
     global data
     
     % this is required to clean all the persistent variables if need be
-    flush = 0; 
-%     history.index = 1;
+    flush = 1; 
+    history.index = 1;
 
     
     if flush 
@@ -111,7 +111,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
         data.frequency = single(nan(1, task_settings.expected_length_experiment));
         data.hits = single(nan(1, task_settings.params.length_trials));
         data.miss = single(nan(1, task_settings.params.length_trials));
-        data.reward = single(nan(1, task_settings.params.length_trials));
+        data.rewards = single(nan(1, task_settings.params.length_trials));
         data.stims = single(nan(1, task_settings.params.length_trials));
         data.trial_end = single(nan(1, task_settings.params.length_trials));
         data.trial_start = single(nan(1, task_settings.params.length_trials));
@@ -180,7 +180,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
     % store nans on frames that we've skipped so we know we skipped
     % them
     if this_volume > history.last_volume  % if this is a new volume
-        counters.tim_frame = cputime;
+        counters.tim_frame = clock;
         % handle ******* MOTION***********
         % because we don't want to stim or reward or update buffer if there is motion
         mot = evalin('base', 'hSI.hMotionManager.motionCorrectionVector');
@@ -260,7 +260,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     history.number_trials = history.number_trials + 1;
                     data.trial_start(history.number_trials) = history.index;
                     flags.new_trial = false;
-                    counters.tim = cputime;
+                    counters.tim = clock;
                     disp('New Trial!')
                     if flags.random_stim
                         flags.stim_done = false;
@@ -305,7 +305,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                         else
                             % do nothing for now. Available to implement later 
                         end
-                    elseif (cputime - counters.tim) > task_settings.params.trial_max_time
+                    elseif (etime(clock,counters.tim)) > task_settings.params.trial_max_time
                         disp('Timeout')
                         data.trial_end(history.number_trials) = history.index;
                         history.number_miss = history.number_miss + 1;
@@ -316,7 +316,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
                     end
                     if ~flags.new_trial
                         if flags.random_stim && ~ flags.stim_done
-                            if (cputime - counters.tim) > time_stim
+                            if (etime(clock,counters.tim)) > time_stim
                                 disp('random stim')
                                 %TODO!!! send stim
                                 a.writeDigitalPin("D11", 1); pause(task_settings.params.stim_pulse); a.writeDigitalPin("D11",0)
@@ -355,7 +355,7 @@ function out = BMIAcqnvs_v2(vals,varargin)
             end
         end
 
-        data.time_vector(history.index) = cputime - counters.tim_frame;
+        data.time_vector(history.index) = etime(clock,counters.tim_frame);
 
     else
         % do nothing (for now)
